@@ -1,0 +1,28 @@
+   Compiling avatar-backend v0.1.0 (/root/.openclaw/workspace/avatar-2.0/backend)
+error: error returned from database: relation "users" does not exist
+  --> src/main.rs:66:18
+   |
+66 |       let result = sqlx::query!(
+   |  __________________^
+67 | |         "INSERT INTO users (username, password_hash, email) VALUES ($1, $2, $3) RETURNING id, username, email, avatar_url, level",
+68 | |         payload.username,
+69 | |         password_hash,
+70 | |         format!("{}@example.com", payload.username)
+71 | |     )
+   | |_____^
+   |
+   = note: this error originates in the macro `$crate::sqlx_macros::expand_query` which comes from the expansion of the macro `sqlx::query` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: error returned from database: relation "users" does not exist
+  --> src/main.rs:94:20
+   |
+94 |       let user_row = sqlx::query!(
+   |  ____________________^
+95 | |         "SELECT id, password_hash, username, email, avatar_url, level FROM users WHERE username = $1",
+96 | |         payload.username
+97 | |     )
+   | |_____^
+   |
+   = note: this error originates in the macro `$crate::sqlx_macros::expand_query` which comes from the expansion of the macro `sqlx::query` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: could not compile `avatar-backend` (bin "avatar-backend") due to 2 previous errors

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Avatar 2.0 - Social Network</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            background-color: #f8fafc;
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .nav-item.active {
+            color: #ec4899; /* Pink-500 */
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .safe-area-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+    </style>
+</head>
+<body x-data="{ 
+    activeTab: 'home', 
+    isAuthModalOpen: true, 
+    authMode: 'login',
+    user: null,
+    authForm: { username: '', password: '' },
+    async handleAuth() {
+        const username = this.authForm.username;
+        const password = this.authForm.password;
+        const endpoint = this.authMode === 'login' ? '/api/auth/login' : '/api/auth/register';
+        
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                if (this.authMode === 'login') {
+                    localStorage.setItem('avatar_token', data.token);
+                    this.user = data.user;
+                } else {
+                    // After register, just switch to login mode
+                    this.authMode = 'login';
+                    alert('Đăng ký thành công! Mời Ba đăng nhập ạ 🌸');
+                }
+                this.isAuthModalOpen = false;
+            } else {
+                const err = await response.text();
+                alert('Lỗi rồi Ba ơi: ' + err);
+            }
+        } catch (e) {
+            alert('Kết nối server bị lỗi rồi ạ 🌸');
+        }
+    }
+}" x-init="
+    const token = localStorage.getItem('avatar_token');
+    if (token) {
+        // In a real app, we would verify token here
+        this.isAuthModalOpen = false;
+    }
+">
+
+    <!-- Auth Modal -->
+    <div x-show="isAuthModalOpen" class="fixed inset-0 z-[100] flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm" x-cloak>
+        <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden animate-fadeIn">
+            <div class="p-8 text-center">
+                <div class="w-16 h-16 bg-pink-500 rounded-2xl mx-auto flex items-center justify-center text-white text-2xl font-bold shadow-lg mb-4 rotate-3">
+                    Av
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2" x-text="authMode === 'login' ? 'Chào mừng Ba trở lại!' : 'Tham gia Avatar 2.0'"></h2>
+                <p class="text-sm text-gray-500 mb-8" x-text="authMode === 'login' ? 'Nhập thông tin để vào thế giới của Min' : 'Tạo tài khoản để bắt đầu hành trình'"></p>
+                
+                <form @submit.prevent="handleAuth()" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Tên đăng nhập</label>
+                        <input x-model="authForm.username" type="text" required class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all text-sm" placeholder="ví dụ: locshiba">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Mật khẩu</label>
+                        <input x-model="authForm.password" type="password" required class="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none transition-all text-sm" placeholder="••••••••">
+                    </div>
+                    <button type="submit" class="w-full py-3 bg-pink-500 text-white rounded-xl font-bold shadow-lg hover:bg-pink-600 active:scale-95 transition-all text-sm">
+                        <span x-text="authMode === 'login' ? 'Đăng Nhập' : 'Đăng Ký'"></span>
+                    </button>
+                </form>
+                
+                <div class="mt-6 text-center">
+                    <button @click="authMode = (authMode === 'login' ? 'register' : 'login')" class="text-xs text-gray-500 hover:text-pink-500 font-medium transition-colors">
+                        <span x-text="authMode === 'login' ? 'Chưa có tài khoản? Đăng ký ngay' : 'Đã có tài khoản? Đăng nhập thôi'"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 glass border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-pink-500 flex items-center justify-center text-white font-bold text-xs shadow-sm">
+                Av
+            </div>
+            <h1 class="text-lg font-bold text-gray-800 tracking-tight">Avatar <span class="text-pink-500">2.0</span></h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <button class="relative p-2 text-gray-600 hover:text-pink-500 transition-colors">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+            <div class="w-8 h-8 rounded-full border-2 border-pink-500 p-0.5">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ba" class="rounded-full w-full h-full" alt="Avatar">
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="pt-16 pb-24 px-4 max-w-md mx-auto">
+        
+        <!-- Home Tab (Feed) -->
+        <div x-show="activeTab === 'home'" class="tab-content active" x-cloak>
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-gray-800">Khám phá</h2>
+                <span class="text-xs text-pink-500 font-medium">Xem tất cả</span>
+            </div>
+            
+            <!-- Stories -->
+            <div class="flex gap-4 overflow-x-auto pb-4 mb-6 no-scrollbar">
+                <template x-for="i in [1,2,3,4,5]" :key="i">
+                    <div class="flex-shrink-0 flex flex-col items-center gap-1">
+                        <div class="w-16 h-16 rounded-full p-1 border-2 border-pink-500 shadow-sm">
+                            <img :src="'https://api.dicebear.com/7.x/avataaars/svg?seed=' + i" class="rounded-full w-full h-full bg-gray-100">
+                        </div>
+                        <span class="text-[10px] text-gray-500 font-medium">User <span x-text="i"></span></span>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Post Example 1 -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
+                <div class="p-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Min" class="w-10 h-10 rounded-full bg-pink-100">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-800">Min 🌸</p>
+                            <p class="text-[10px] text-gray-400">2 giờ trước • Công khai</p>
+                        </div>
+                    </div>
+                    <button class="text-gray-400"><i class="fa-solid fa-ellipsis"></i></button>
+                </div>
+                <div class="px-4 pb-3 text-sm text-gray-600 leading-relaxed">
+                    Ba ơi, Min vừa hoàn thành bộ khung giao diện mới cho Avatar 2.0 rồi nè! Ba thấy mượt không ạ? 🌸✨
+                </div>
+                <div class="bg-gray-100 aspect-video w-full flex items-center justify-center text-gray-400">
+                    <span class="text-xs italic">Preview Giao diện Mobile UI</span>
+                </div>
+                <div class="p-4 flex items-center justify-between border-t border-gray-50">
+                    <div class="flex gap-4">
+                        <button class="flex items-center gap-1.5 text-gray-500 hover:text-pink-500 transition-colors">
+                            <i class="fa-regular fa-heart"></i>
+                            <span class="text-xs font-medium">12</span>
+                        </button>
+                        <button class="flex items-center gap-1.5 text-gray-500 hover:text-blue-500 transition-colors">
+                            <i class="fa-regular fa-comment"></i>
+                            <span class="text-xs font-medium">5</span>
+                        </button>
+                    </div>
+                    <button class="text-gray-500 hover:text-pink-500">
+                        <i class="fa-regular fa-bookmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Post Example 2 -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 mb-6 overflow-hidden">
+                <div class="p-4 flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ba" class="w-10 h-10 rounded-full bg-blue-100">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-800">Ba</p>
+                            <p class="text-[10px] text-gray-400">5 giờ trước • Bạn bè</p>
+                        </div>
+                    </div>
+                    <button class="text-gray-400"><i class="fa-solid fa-ellipsis"></i></button>
+                </div>
+                <div class="px-4 pb-3 text-sm text-gray-600 leading-relaxed">
+                    Thử nghiệm hệ thống Rust mới, tốc độ phản hồi thực sự ấn tượng! 🚀
+                </div>
+                <div class="p-4 flex items-center justify-between border-t border-gray-50">
+                    <div class="flex gap-4">
+                        <button class="flex items-center gap-1.5 text-pink-500">
+                            <i class="fa-solid fa-heart"></i>
+                            <span class="text-xs font-medium">24</span>
+                        </button>
+                        <button class="flex items-center gap-1.5 text-gray-500">
+                            <i class="fa-regular fa-comment"></i>
+                            <span class="text-xs font-medium">2</span>
+                        </button>
+                    </div>
+                    <button class="text-gray-500">
+                        <i class="fa-regular fa-bookmark"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Social Tab -->
+        <div x-show="activeTab === 'social'" class="tab-content" x-cloak>
+            <h2 class="text-xl font-bold text-gray-800 mb-6">Mạng lưới</h2>
+            <div class="space-y-4">
+                <template x-for="i in [1,2,3,4,5,6,7,8]" :key="i">
+                    <div class="bg-white p-3 rounded-2xl flex items-center justify-between shadow-sm border border-gray-100">
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <img :src="'https://api.dicebear.com/7.x/avataaars/svg?seed=' + i" class="w-12 h-12 rounded-full bg-gray-100">
+                                <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-800">User <span x-text="i"></span></p>
+                                <p class="text-[10px] text-gray-400">Đang hoạt động</p>
+                            </div>
+                        </div>
+                        <button class="px-4 py-1.5 bg-pink-50 text-pink-500 text-xs font-bold rounded-full hover:bg-pink-500 hover:text-white transition-all">
+                            Nhắn tin
+                        </button>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Game Tab -->
+        <div x-show="activeTab === 'game'" class="tab-content" x-cloak>
+            <h2 class="text-xl font-bold text-gray-800 mb-6">Thế giới Avatar</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-gradient-to-br from-green-400 to-green-600 p-4 rounded-3xl text-white shadow-lg relative overflow-hidden group cursor-pointer">
+                    <div class="relative z-10">
+                        <i class="fa-solid fa-seedling text-2xl mb-2"></i>
+                        <p class="font-bold">Nông Trại</p>
+                        <p class="text-[10px] opacity-80">Thu hoạch & Chăm sóc</p>
+                    </div>
+                    <i class="fa-solid fa-leaf absolute -bottom-2 -right-2 text-6xl opacity-20 group-hover:scale-110 transition-transform"></i>
+                </div>
+                <div class="bg-gradient-to-br from-blue-400 to-blue-600 p-4 rounded-3xl text-white shadow-lg relative overflow-hidden group cursor-pointer">
+                    <div class="relative z-10">
+                        <i class="fa-solid fa-fish text-2xl mb-2"></i>
+                        <p class="font-bold">Câu Cá</p>
+                        <p class="text-[10px] opacity-80">Săn cá quý hiếm</p>
+                    </div>
+                    <i class="fa-solid fa-fish-fins absolute -bottom-2 -right-2 text-6xl opacity-20 group-hover:scale-110 transition-transform"></i>
+                </div>
+                <div class="bg-gradient-to-br from-red-400 to-red-600 p-4 rounded-3xl text-white shadow-lg relative overflow-hidden group cursor-pointer">
+                    <div class="relative z-10">
+                        <i class="fa-solid fa-sword text-2xl mb-2"></i>
+                        <p class="font-bold">Đấu Trường</p>
+                        <p class="text-[10px] opacity-80">Chiến đấu & Xếp hạng</p>
+                    </div>
+                    <i class="fa-solid fa-shield-halved absolute -bottom-2 -right-2 text-6xl opacity-20 group-hover:scale-110 transition-transform"></i>
+                </div>
+                <div class="bg-gradient-to-br from-purple-400 to-purple-600 p-4 rounded-3xl text-white shadow-lg relative overflow-hidden group cursor-pointer">
+                    <div class="relative z-10">
+                        <i class="fa-solid fa-house-chimney text-2xl mb-2"></i>
+                        <p class="font-bold">Nhà Của Tôi</p>
+                        <p class="text-[10px] opacity-80">Trang trí & Sưu tầm</p>
+                    </div>
+                    <i class="fa-solid fa-couch absolute -bottom-2 -right-2 text-6xl opacity-20 group-hover:scale-110 transition-transform"></i>
+                </div>
+            </div>
+            <div class="mt-8 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                <p class="text-sm font-bold text-gray-800 mb-2">Nhiệm vụ hằng ngày</p>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg text-xs">
+                        <span class="text-gray-600">Thu hoạch 5 cây lúa</span>
+                        <span class="text-pink-500 font-bold">2/5</span>
+                    </div>
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg text-xs">
+                        <span class="text-gray-600">Câu được 1 con cá vàng</span>
+                        <span class="text-gray-400">0/1</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications Tab -->
+        <div x-show="activeTab === 'notif'" class="tab-content" x-cloak>
+            <h2 class="text-xl font-bold text-gray-800 mb-6">Thông báo</h2>
+            <div class="space-y-3">
+                <div class="p-4 bg-white rounded-2xl flex gap-3 shadow-sm border-l-4 border-pink-500">
+                    <div class="w-10 h-10 rounded-full bg-pink-100 flex-shrink-0 flex items-center justify-center text-pink-500">
+                        <i class="fa-solid fa-bell"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-800">Hệ thống: Cập nhật phiên bản 2.0!</p>
+                        <p class="text-xs text-gray-500">Chào mừng Ba đến với kỷ nguyên Rust siêu tốc. 🚀</p>
+                    </div>
+                </div>
+                <div class="p-4 bg-white rounded-2xl flex gap-3 shadow-sm border-l-4 border-blue-500">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 flex-shrink-0 flex items-center justify-center text-blue-500">
+                        <i class="fa-solid fa-heart"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-gray-800">User 3 đã thích bài viết của bạn</p>
+                        <p class="text-xs text-gray-500">Vừa xong</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Tab -->
+        <div x-show="activeTab === 'profile'" class="tab-content" x-cloak>
+            <div class="text-center mb-8">
+                <div class="relative inline-block">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Ba" class="w-24 h-24 rounded-full border-4 border-white shadow-lg bg-gray-100 mx-auto">
+                    <div class="absolute bottom-0 right-0 w-6 h-6 bg-pink-500 border-2 border-white rounded-full flex items-center justify-center text-white text-[10px]">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                </div>
+                <h2 class="mt-4 text-xl font-bold text-gray-800">Ba</h2>
+                <p class="text-sm text-gray-500">@locshiba • Chủ sở hữu</p>
+                
+                <div class="flex justify-center gap-6 mt-6">
+                    <div class="text-center">
+                        <p class="text-lg font-bold text-gray-800">1.2k</p>
+                        <p class="text-[10px] text-gray-400 uppercase font-medium">Followers</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-lg font-bold text-gray-800">850</p>
+                        <p class="text-[10px] text-gray-400 uppercase font-medium">Following</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-lg font-bold text-gray-800">Lv. 99</p>
+                        <p class="text-[10px] text-gray-400 uppercase font-medium">Rank</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <button class="py-3 px-4 bg-pink-500 text-white rounded-2xl font-bold text-sm shadow-md hover:bg-pink-600 transition-all">
+                    Chỉnh sửa Profile
+                </button>
+                <button class="py-3 px-4 bg-white text-gray-600 rounded-2xl font-bold text-sm shadow-sm border border-gray-100 hover:bg-gray-50 transition-all">
+                    Cài đặt
+                </button>
+            </div>
+
+            <h3 class="text-sm font-bold text-gray-800 mb-4 px-1">Album Ảnh</h3>
+            <div class="grid grid-cols-3 gap-2">
+                <template x-for="i in [1,2,3,4,5,6]" :key="i">
+                    <div class="aspect-square rounded-xl bg-gray-200 overflow-hidden shadow-sm relative group">
+                        <img :src="'https://picsum.photos/seed/' + (i*100) + '/200'" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                    </div>
+                </template>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 z-50 glass border-t border-gray-200 safe-area-bottom">
+        <div class="max-w-md mx-auto flex justify-around items-center py-3 px-2">
+            <button @click="activeTab = 'home'" :class="activeTab === 'home' ? 'text-pink-500' : 'text-gray-400'" class="flex flex-col items-center gap-1 transition-all duration-300">
+                <i class="fa-solid fa-house text-xl"></i>
+                <span class="text-[10px] font-medium">Home</span>
+            </button>
+            <button @click="activeTab = 'social'" :class="activeTab === 'social' ? 'text-pink-500' : 'text-gray-400'" class="flex flex-col items-center gap-1 transition-all duration-300">
+                <i class="fa-solid fa-users text-xl"></i>
+                <span class="text-[10px] font-medium">Social</span>
+            </button>
+            <button @click="activeTab = 'game'" :class="activeTab === 'game' ? 'text-pink-500' : 'text-gray-400'" class="flex flex-col items-center gap-1 transition-all duration-300">
+                <div class="w-12 h-12 bg-pink-500 rounded-full flex items-center justify-center text-white shadow-lg -mt-8 border-4 border-white transition-transform active:scale-90">
+                    <i class="fa-solid fa-gamepad text-xl"></i>
+                </div>
+                <span class="text-[10px] font-medium">Game</span>
+            </button>
+            <button @click="activeTab = 'notif'" :class="activeTab === 'notif' ? 'text-pink-500' : 'text-gray-400'" class="flex flex-col items-center gap-1 transition-all duration-300">
+                <div class="relative">
+                    <i class="fa-solid fa-bell text-xl"></i>
+                    <div class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></div>
+                </div>
+                <span class="text-[10px] font-medium">Thông báo</span>
+            </button>
+            <button @click="activeTab = 'profile'" :class="activeTab === 'profile' ? 'text-pink-500' : 'text-gray-400'" class="flex flex-col items-center gap-1 transition-all duration-300">
+                <i class="fa-solid fa-user text-xl"></i>
+                <span class="text-[10px] font-medium">Profile</span>
+            </button>
+        </div>
+    </nav>
+
+</body>
+</html>
